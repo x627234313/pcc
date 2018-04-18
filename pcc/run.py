@@ -20,18 +20,22 @@ app = Sanic()
 
 @app.route("/pcc", methods=['GET'])
 async def test(request):
-    try:
-        action = request.args['action']
-        uid = request.args['action']
-    except KeyError:
+    action = request.args.get('action')
+    uid = request.args.get('uid')
+    oid = request.args.get('oid')
+
+    if not all((action, uid)):
         result = {
             "error_code": "101",
             "error_message": "未能提供正确的参数, 请检查参数后重新发起请求"
         }
         return response.json(result)
-    oid = request.args.get('action', None)
-    action = func_dict['action']
-    result = action(uid, oid)
+
+    action = func_dict[action]
+    if oid:
+        result = await action(uid, oid)
+    else:
+        result = await action(uid)
     return response.json(result)
 
 

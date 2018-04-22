@@ -1,8 +1,16 @@
 import aiomysql
 
 
+host = '192.168.1.130'
+port = 3306
+user = 'root'
+password = 'root'
+db = 'pcc'
+loop = asyncio.get_event_loop()
+
+
 async def list(uid):
-    select_friend = "select * from friend where uid={uid}".format(uid=uid)
+    select_friends = "select * from friend where uid={uid}".format(uid=uid)
     select_others = "select uid,oid from  favour, friend where favour.uid={uid} and friend.friend_id != favour.oid ".format(uid=uid)
     async with aiomysql.create_pool(
         host='139.199.0.245',
@@ -13,9 +21,9 @@ async def list(uid):
     ) as pool:
         async with pool.get() as conn:
             async with conn.cursor() as cur:
-                friend = await cur.excute(select_friend)
+                friends = await cur.excute(select_friends)
                 others = await cur.execute(select_others)
-                return (friend, others)
+                return (friends, others)
 
 
 async def like(uid, oid):
@@ -76,4 +84,3 @@ async def is_like(uid, oid):
                     return {'status':'yes'}
                 else:
                     return {'status':'no'}
-

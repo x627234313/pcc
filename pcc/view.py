@@ -1,15 +1,66 @@
 import aiomysql
 
-async def list():
-    pass
+
+async def list(uid):
+    select_friend = "select * from friend where uid={uid}".format(uid=uid)
+    select_others = "select uid,oid from  favour, friend where favour.uid={uid} and friend.friend_id != favour.oid ".format(uid=uid)
+    async with aiomysql.create_pool(
+        host='139.199.0.245',
+        port=3306,
+        user='dear',
+        password='both-win',
+        db='pcc'
+    ) as pool:
+        async with pool.get() as conn:
+            async with conn.cursor() as cur:
+                friend = await cur.excute(select_friend)
+                others = await cur.execute(select_others)
+                return (friend, others)
 
 
-async def like():
-    pass
+async def like(uid, oid):
+    async with create_pool(host=host, port=port,
+                           user=user, password=password,
+                           db=db) as pool:
+        async with pool.get() as conn:
+            async with conn.cursor() as cur:
+                uids = []   # 列表:存放所有的uid
+                like_list = []  # 列表：存放oid所有的like用户
+                # 查询like oid的所有uid
+                await cur.execute("select uid from favour where oid = {}".format(oid))
+                uids_ret = await cur.fetchall()
+                for _ in uids_ret:
+                    uids.append(_[0])   # 将查询的结果存到列表里
+
+                # 如果对象没有被like过，则往favour表插入用户
+                if uid not in uids:
+                    await cur.execute("insert into favour values ('{}', '{}')".format(oid, uid))
+                    uids.append(uid)
+
+                    # 查询每个uid的uname
+                    for each_uid in uids:
+                        await cur.execute("select uname from user where uid = {}".format(each_uid))
+                        uname = await cur.fetchone()
+                        like_list.append({each_uid: uname[0]})
+
+                    return {'oid': oid, 'uid': uid, 'like_list': like_list}
+
+                else:   # 第二次 like 返回错误码
+                    print('error')
+                    error()
 
 
-async def count():
-    pass
+async def count(oid):
+    async with create_pool(host=HOST, port=PORT,
+                        user=USER, password=PASSWORD,
+                        db=DB) as pool:
+    async with pool.get() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute("select oid, count(uid) from favour where oid=%s group by oid;", oid)
+            value = await cur.fetchone()
+            return {"oid": value[0],
+                    "count": value[1]
+                    }
 
 
 async def is_like(uid, oid):

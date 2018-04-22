@@ -1,4 +1,5 @@
 import aiomysql
+import db
 
 
 host = '192.168.1.130'
@@ -9,21 +10,22 @@ db = 'pcc'
 loop = asyncio.get_event_loop()
 
 
-async def list(uid):
-    select_friends = "select * from friend where uid={uid}".format(uid=uid)
-    select_others = "select uid,oid from  favour, friend where favour.uid={uid} and friend.friend_id != favour.oid ".format(uid=uid)
-    async with aiomysql.create_pool(
-        host='139.199.0.245',
-        port=3306,
-        user='dear',
-        password='both-win',
-        db='pcc'
-    ) as pool:
-        async with pool.get() as conn:
-            async with conn.cursor() as cur:
-                friends = await cur.excute(select_friends)
-                others = await cur.execute(select_others)
-                return (friends, others)
+async def list(uid, oid, cursor=0, page_size=10, is_friend=None):
+    next_cursor = cursor + page_size
+    select_social = "select user.uid, user.username from friend, favour \
+        where favour.uid=friend.friend_id and favour.oid={oid}"
+    select_others = "select user.uid, user.username from user, \
+        favour where favour.oid={oid} limit {cursor}, {next_cursor}"
+
+    friends = await db.mysql.excute(select_social)
+    like_list = list(friends)
+
+    if not is_friend:
+        select_others.format(oid=oid, cursor=cursor, next_cursor=next_cursor)
+        others = await db.mysql.excute(select_others)
+        like_list = like_list.extend(others)
+
+    return {"oid": oid, "like_list": like_list, "next_cursor": next_cursor}
 
 
 async def like(uid, oid):
